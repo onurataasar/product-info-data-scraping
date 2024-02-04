@@ -1,6 +1,6 @@
 const { chromium } = require("playwright");
-const mail = process.env.TRENDYOL_SELLER_MAIL;
-const password = process.env.TRENDYOL_SELLER_PASS;
+const mail = process.env.MAIL;
+const password = process.env.PASSWORD;
 
 (async () => {
   // Launch the browser
@@ -25,69 +25,64 @@ const password = process.env.TRENDYOL_SELLER_PASS;
   // Wait for navigation after login (optional, but recommended)
   await page.waitForNavigation();
 
-  // go to product list page
+  // FOR TEST ENVIRONMENT REMOVE LATER
+  await page.getByRole("button", { name: "Hesabı Seç" }).nth(0).click();
+
+  await page.waitForTimeout(2000);
+  // go to incentive page
   await page.goto("https://stagepartner.trendyol.com/incentive");
 
-  // Wait for the table to load
-  /*   await page.waitForSelector("table__container"); */ // Replace with your table selector
+  await page.locator("bl-radio[value='ALL_CATEGORIES']").click();
+  await page.getByRole("button", { name: "Filtrele" }).click();
 
-  /*   // Select the largest page size from the dropdown
-  await page.click(".select-input"); // Click to open the dropdown
-  await page.click("bl-select-option:last-child"); // Select the last option (assumed to be the largest) */
-
-  // Initialize an array to store prices
-  let allPrices = [];
-
-  let currentPage = 1;
-  // Get all the bl-button elements within the "page-list"
-  const pageButtons = await page.$$eval(
-    ".page-list bl-button",
-    (buttons) => buttons
-  );
-
-  // Get the last button and extract the total pages
-  let totalPages = 10;
-  if (pageButtons.length > 0) {
-    const lastButton = pageButtons[pageButtons.length - 1];
-    const labelText = await lastButton.evaluate((button) =>
-      button.textContent.trim()
-    );
-    totalPages = parseInt(labelText, 10);
-  }
-
-  console.log("Total Pages:", totalPages);
-
-  while (currentPage <= totalPages) {
-    // Wait for the new page of the table to load after changing the page size or navigating to next page
-    await page.waitForSelector(".table_loading", { state: "hidden" });
-
-    /*     // wait for selector with the class .tr
-    await page.waitForSelector("tr"); */
-
-    //console.log tr
-    const tr = await page.$$eval(".product-list-item-100");
-    console.log("🚀 ~ tr:", tr);
-
-    // Get the data from the current page
-    const dataOnPage = await page.$$eval(".tr", (rows) =>
-      rows.map((row) => {
-        console.log(row);
-        const price = row.querySelector('[cy-id="contentBuyboxPrice"]');
-        const barcode = row.querySelector('[cy-id="contentBarcode"]');
-        return { price, barcode };
-      })
-    );
-    allPrices = [...allPrices, ...dataOnPage];
-
-    // Navigate to the next page if not the last page
-    if (currentPage < totalPages) {
-      await page.click('button[aria-label="Next"]');
-      currentPage++;
+  await page.click("bl-select");
+  await page.waitForSelector("bl-select-option");
+  await page.getByText("100 Sonuç").click();
+  const pageCount = await page.locator("ul[class='page-list'] > li").count();
+  // Get the incentive info
+  const incentiveInfo = [];
+  const rowCount = await page.locator("tr").count();
+  // Get the incentive info for each row in the table (except the header) and add it to the incentiveInfo array, when the page has more than 1 page it will loop through all the pages
+  for (let i = 1; i < pageCount; i++) {
+    for (let j = 1; j < rowCount; j++) {
+      const category = await page
+        .locator("tr")
+        .nth(j)
+        .locator("td")
+        .nth(0)
+        .innerText();
+      const subCategory = await page
+        .locator("tr")
+        .nth(j)
+        .locator("td")
+        .nth(1)
+        .innerText();
+      const vade = await page
+        .locator("tr")
+        .nth(j)
+        .locator("td")
+        .nth(2)
+        .innerText();
+      const commissionRateWithVat = await page
+        .locator("tr")
+        .nth(j)
+        .locator("td")
+        .nth(3)
+        .innerText();
+      incentiveInfo.push({
+        category,
+        subCategory,
+        vade,
+        commissionRateWithVat,
+      });
     }
+    await page.locator("ul[class='page-list'] > li").nth(i).click();
+    await page.waitForTimeout(2000);
   }
-  console.log(allPrices);
+  await page.waitForTimeout(2000);
 
-  // Now allPrices contains the prices from all pages
+  console.log(incentiveInfo);
+
   // Close the browser
   await browser.close();
 })();
