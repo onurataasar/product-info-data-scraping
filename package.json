@@ -1,0 +1,14 @@
+{
+  "name": "my-playwright-project",
+  "version": "1.0.0",
+  "description": "A project using Playwright for web automation",
+  "main": "getBuyboxPrice.js",
+  "scripts": {
+    "start": "node getBuyboxPrice.js"
+  },
+  "author": "onur ata asar",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.41.1"
+  }
+}
